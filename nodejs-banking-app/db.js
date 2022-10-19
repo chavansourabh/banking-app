@@ -16,19 +16,24 @@ client.connect((err) => {
 });
 
 //  ------------ TO CREATE ACCOUNT ----------------
-const createNewAccount = ({ acId, acNm, balance }) => {
+const createNewAccount = ({ acId, acNm, balance }, onCreate = undefined) => {
   client.query(
     `INSERT INTO account VALUES ($1 , $2 ,$3)`,
     [acId, acNm, balance],
     (err, res) => {
       if (err) console.log(`\n ❌ Problem in Creating the customer`);
-      else console.log("\n ✅ New Customer Created Succesfully");
+      else {
+        console.log("\n ✅ New Customer Created Succesfully");
+        if (onCreate) {
+          onCreate(`\n ✅ Account created successfully`);
+        }
+      }
     }
   );
 };
 
 // ----------- TO WITHDRAW MONEY------------------
-const withdraw = ({ acId, amount }) => {
+const withdraw = ({ acId, amount }, onWithdraw = undefined) => {
   client.query(
     `select balance from account where ac_id = $1 `,
     [acId],
@@ -45,7 +50,12 @@ const withdraw = ({ acId, amount }) => {
             [newBalance, acId],
             (err, res) => {
               if (err) console.log("\n ❌ Problem in withdrawing");
-              else console.log(`\n ✅ Amount ${amount} Withdraw succesfully`);
+              else {
+                console.log(`\n ✅ Amount ${amount} Withdraw succesfully`);
+                if (onWithdraw) {
+                  onWithdraw(`\n ✅ Amount ${amount} Withdraw succesfully`);
+                }
+              }
             }
           );
         } else console.log("\n ❌ Insufficient balance");
@@ -55,7 +65,7 @@ const withdraw = ({ acId, amount }) => {
 };
 
 // -------------- TO DEPOSITE MONEY ---------------------------
-const deposite = ({ acId, amount }) => {
+const deposite = ({ acId, amount }, onDeposite = undefined) => {
   client.query(
     `select balance from account where ac_id = $1 `,
     [acId],
@@ -72,8 +82,11 @@ const deposite = ({ acId, amount }) => {
           [newBalance, acId],
           (err, res) => {
             if (err) console.log("\n ❌ Problem in Depositing");
-            else console.log(`\n ✅ Amount ${amount} Deposited succesfully`);
-
+            else {
+              console.log(`\n ✅ Amount ${amount} Deposited succesfully`);
+              if (onDeposite)
+                onDeposite(`\n ✅ Amount ${amount} Deposited succesfully`);
+            }
             client.query(
               `select balance from account where ac_id = $1 `,
               [acId],
@@ -91,7 +104,7 @@ const deposite = ({ acId, amount }) => {
 };
 // -------------- TO TRANSFER MONEY ---------------------------
 
-const transfer = ({ srcId, destId, amount }) => {
+const transfer = ({ srcId, destId, amount }, onTransfer = undefined) => {
   // client.query(
   //   `select balance from account where ac_id = $1`,
   //   [srcId],
@@ -143,13 +156,18 @@ const transfer = ({ srcId, destId, amount }) => {
   //     }
   //   }
   // );
-  withdraw({ acId: srcId, amount });
-  deposite({ acId: destId, amount });
+  withdraw({ acId: srcId, amount }, (msgWd) => {
+    deposite({ acId: destId, amount }, (msgDp) => {
+      if (onTransfer) {
+        onTransfer(`✅ Amount ${amount} Transfer Successfully`);
+      }
+    });
+  });
 };
 
 // -------------- TO CHECK BALANCE ---------------------------
 
-const checkBalance = (acId) => {
+const checkBalance = (acId, onBalance = undefined) => {
   client.query(
     `select balance from account where ac_id = $1`,
     [acId],
@@ -159,6 +177,7 @@ const checkBalance = (acId) => {
       } else {
         const balance = parseFloat(res.rows[0].balance);
         console.log(`\n Your Existing Balance is ${balance}`);
+        if (onBalance) onBalance(balance);
       }
     }
   );
