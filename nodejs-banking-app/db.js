@@ -16,16 +16,17 @@ client.connect((err) => {
 });
 
 //  ------------ TO CREATE ACCOUNT ----------------
-const createNewAccount = ({ acId, acNm, balance }, onCreate = undefined) => {
+const createNewAccount = ({ acNm, balance }, onCreate = undefined) => {
   client.query(
-    `INSERT INTO account VALUES ($1 , $2 ,$3)`,
-    [acId, acNm, balance],
+    `INSERT INTO account(ac_nm , balance) VALUES ($1 , $2 )`,
+    [acNm, balance],
     (err, res) => {
       if (err) console.log(`\n ❌ Problem in Creating the customer`);
       else {
         console.log("\n ✅ New Customer Created Succesfully");
+
         if (onCreate) {
-          onCreate(`\n ✅ Account created successfully`);
+          onCreate(`\n ✅ Account created successfully `);
         }
       }
     }
@@ -43,7 +44,7 @@ const withdraw = ({ acId, amount }, onWithdraw = undefined) => {
       } else {
         const balance = parseFloat(res.rows[0].balance);
 
-        const newBalance = balance - amount;
+        const newBalance = balance - parseFloat(amount);
         if (newBalance >= 0) {
           client.query(
             `update account set balance = $1 where ac_id = $2`,
@@ -65,7 +66,7 @@ const withdraw = ({ acId, amount }, onWithdraw = undefined) => {
 };
 
 // -------------- TO DEPOSITE MONEY ---------------------------
-const deposite = ({ acId, amount }, onDeposite = undefined) => {
+const deposit = ({ acId, amount }, onDeposit = undefined) => {
   client.query(
     `select balance from account where ac_id = $1 `,
     [acId],
@@ -75,7 +76,7 @@ const deposite = ({ acId, amount }, onDeposite = undefined) => {
       } else {
         const balance = parseFloat(res.rows[0].balance);
 
-        const newBalance = balance + amount;
+        const newBalance = balance + parseFloat(amount);
 
         client.query(
           `update account set balance = $1 where ac_id = $2`,
@@ -84,8 +85,9 @@ const deposite = ({ acId, amount }, onDeposite = undefined) => {
             if (err) console.log("\n ❌ Problem in Depositing");
             else {
               console.log(`\n ✅ Amount ${amount} Deposited succesfully`);
-              if (onDeposite)
-                onDeposite(`\n ✅ Amount ${amount} Deposited succesfully`);
+
+              if (onDeposit)
+                onDeposit(`\n ✅ Amount ${amount} Deposited succesfully`);
             }
             client.query(
               `select balance from account where ac_id = $1 `,
@@ -157,7 +159,7 @@ const transfer = ({ srcId, destId, amount }, onTransfer = undefined) => {
   //   }
   // );
   withdraw({ acId: srcId, amount }, (msgWd) => {
-    deposite({ acId: destId, amount }, (msgDp) => {
+    deposit({ acId: destId, amount }, (msgDp) => {
       if (onTransfer) {
         onTransfer(`✅ Amount ${amount} Transfer Successfully`);
       }
@@ -183,10 +185,24 @@ const checkBalance = (acId, onBalance = undefined) => {
   );
 };
 
+// --------------------users list ------------------------------
+const usersList = (onUsers = undefined) => {
+  client.query("SELECT * FROM account ORDER BY ac_id", (err, res) => {
+    if (err) {
+      console.log("\n ❌ Problem in Fetching the users");
+    } else {
+      const users = res.rows;
+      console.log(users);
+      if (onUsers) onUsers(users);
+    }
+  });
+};
+
 module.exports = {
   createNewAccount,
   withdraw,
-  deposite,
+  deposit,
   transfer,
   checkBalance,
+  usersList,
 };
